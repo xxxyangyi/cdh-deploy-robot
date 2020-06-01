@@ -154,7 +154,7 @@ function init_hosts {
 function set_hosts {
     # 主机名设置
     info "start setting /etc/hosts and config ssh keys."
-    yum install -y expect
+    apt install -y expect
     need_cmd expect
     have $expect_file
     if [ -f /tmp/hosts.bak ]
@@ -194,7 +194,7 @@ function set_hosts {
 function install_ansible {
     # 安装ansible
     info "start install ansible."
-    yum install -y ansible
+    apt install -y ansible
     need_cmd ansible
     echo "[all]" > /etc/ansible/hosts
     for host in ${hosts[*]}
@@ -220,25 +220,25 @@ function ansible_copy {
     need_ok "ansible copy failed: $1"
 }
 
-function set_yum {
-    # 更新yum源
-    info "start set yum."
-    if [ ! -f /etc/yum.repos.d/CentOS-Base.repo.backup ]
-    then
-        cp /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup
-    fi
-    ansible_command "yum install -y wget"
-    ansible_command "wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo"
+function set_apt {
+    # 更新apt源
+    info "start set apt."
+    # if [ ! -f /etc/yum.repos.d/CentOS-Base.repo.backup ]
+    # then
+    #     cp /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup
+    # fi
+    ansible_command "apt install -y wget"
+    # ansible_command "wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo"
     info "clean and makecache,it may take a little time, please wait a moment..."
-    ansible_shell "yum clean all && yum makecache"
-    info "update yum, wait again."
-    ansible_command "yum -y update"
+    ansible_shell "apt clean all && apt makecache"
+    info "update apt, wait again."
+    ansible_command "apt -y update"
 
     # 安装系统软件
     info "install softs."
-    yum_requrements=`cat $SELF/yum_requirements.txt`
-    echo "yum install -y $yum_requrements"
-    ansible_command "yum install -y $yum_requrements"
+    apt_requrements=`cat $SELF/apt_requirements.txt`
+    echo "apt install -y $apt_requrements"
+    ansible_command "apt install -y $apt_requrements"
     info "done."
     echo
 }
@@ -316,7 +316,7 @@ function set_ntp {
     info "change timezone info to Shanghai."
     ansible all -m shell -a "rm -rf /etc/localtime && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime"
     info "install ntpd."
-    ansible all -a "yum install ntp -y"
+    ansible all -a "apt install ntp -y"
     info "sync time to 0.cn.pool.ntp.org"
     ansible all -a "ntpdate -u 0.cn.pool.ntp.org"
     info "add ntp1.aliyun.com to ntp.conf"
@@ -343,7 +343,7 @@ function set_java {
         have $java_file
         info "get jdk $java_file,scp to all hosts..."
         ansible_copy "src=$java_file dest=$java_file"
-        ansible_shell "yum localinstall -y $java_file"
+        ansible_shell "apt localinstall -y $java_file"
         jdk_name=`ls /usr/java/ | grep -v default`
         jdk_path="/usr/java/$jdk_name"
         is_exists=`ls -al /usr/java/ | grep jdk | grep -v default | wc -l`
@@ -403,14 +403,16 @@ function set_profile {
 function set_python {
     info "start set python..."
     if ! check_cmd python3.6; then
+        info "place install python36 "
+        exit
         # python
-        info "install dev packages, wait a moment..."
-        ansible_command "yum install -y openssl-devel bzip2-devel expat-devel gdbm-devel readline-devel sqlite-devel gcc-c++ python36-devel cyrus-sasl-lib.x86_64 cyrus-sasl-devel.x86_64 libgsasl-devel.x86_64 epel-release"
-        # yum源下载
-        ansible all -a "yum install https://centos7.iuscommunity.org/ius-release.rpm -y"
+        # info "install dev packages, wait a moment..."
+        # ansible_command "apt install -y openssl-devel bzip2-devel expat-devel gdbm-devel readline-devel sqlite-devel gcc-c++ python36-devel cyrus-sasl-lib.x86_64 cyrus-sasl-devel.x86_64 libgsasl-devel.x86_64 epel-release"
+        # apt源下载
+        # ansible all -a "yum install https://centos7.iuscommunity.org/ius-release.rpm -y"
         # 安装python3.6
-        info "install python36..."
-        ansible_command "yum install python36 -y"
+        # info "install python36..."
+        # ansible_command "yum install python36 -y"
     else
         info "python36 already installed."
     fi
@@ -924,7 +926,7 @@ function init_ssh {
 function install_softs {
     need_ssh
     install_ansible
-    set_yum
+    set_apt
 }
 
 function init_system {
